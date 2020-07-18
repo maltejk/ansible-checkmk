@@ -89,9 +89,10 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.checkmk_api import Changes
 
 class CallChanges:
-    def __init__(self, session):
+    def __init__(self, session, ansible):
         self.session = session
         self.hostname = session.hostname
+        self.ansible = ansible
 
     def activate(self, payload):
         result = self.session.activate(payload=payload)
@@ -102,8 +103,8 @@ class CallChanges:
         elif isinstance(result_output, dict):
             return True, result_output
 
-        ansible.fail_json(msg='Failed to activate changes: %s' % result_output,
-                          payload=payload)
+        self.ansible.fail_json(msg='Failed to activate changes: %s' % result_output,
+                         payload=payload)
 
 
 def main():
@@ -130,21 +131,20 @@ def main():
         ansible.params['url'],
         ansible.params['user'],
         ansible.params['password'],
-        verify=ansible.params['validate_certs'],))
+        verify=ansible.params['validate_certs'], hostname=None), ansible)
 
     payload = {
-        'allow_foreign_changes': ansible.params['allow_foreign_changes']
+        'allow_foreign_changes': 1 if ansible.params['allow_foreign_changes'] == 'yes' else 0
         }
-
     if ansible.params['comments']:
-        payload['comments'] = ansible.params['comments']
+        payload['comment'] = ansible.params['comments']
     if sites:
         payload['sites'] = sites
         payload['mode'] = 'specific'
     else:
         payload['mode'] = 'dirty'
-    
-    changed, result = changes.activate(payload)    
+
+    changed, result = changes.activate(payload)
 
     ansible_result = dict(
         sites=sites,

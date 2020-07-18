@@ -27,7 +27,7 @@ class WebAPI(object):
             payload['request'] = repr(request)
 
         try:
-            response = requests.get(self.url, params=payload, verify=self.verify, timeout=5)
+            response = requests.get(self.url, params=payload, verify=True, timeout=30)
             return ast.literal_eval(response.text)
         except:
             raise
@@ -131,10 +131,11 @@ class Services(object):
 
 
 class Changes(object):
-    def __init__(self, url, username, secret, verify=True):
+    def __init__(self, url, username, secret, verify=True, hostname=None):
         url = "%s/check_mk/webapi.py" % url.rstrip('/')
         session = DataTuple(url, username, secret, verify)
         self.session = WebAPI(session.data)
+        self.hostname = hostname
 
     def pre_call(fn):
         def _decorator(self, **kwargs):
